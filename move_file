@@ -1,0 +1,37 @@
+#!/bin/bash
+############################################################
+# This script can be used to transfer files for sharing
+# This handles the SELinux extensions
+#
+# Author(s):
+#     Juhapekka Piiroinen <juhapekka.piiroinen@csc.fi>
+#
+# License: MIT
+#
+# (C) 2020 CSC - IT Center for Science Ltd
+# All Rights Reserved.
+############################################################
+set -e
+
+SOURCE=$1
+
+# Internal variables
+TARGET=/usr/share/nginx/html/download
+
+# Commands
+
+## Move file
+echo "1/2) Moving file.."
+mkdir -p ${TARGET}
+mv ${SOURCE} ${TARGET} 
+echo "..file moved."
+echo
+
+# Ensure SELinux permissions
+echo "2/2) Setting up SELinux permissions.."
+for FILE in `ls ${TARGET}`; do
+    semanage fcontext -a -t httpd_sys_content_t ${TARGET}/${FILE}
+done
+restorecon -Rv ${TARGET}
+echo "..permissions set."
+echo

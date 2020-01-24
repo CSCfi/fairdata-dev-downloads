@@ -1,0 +1,63 @@
+#!/bin/bash
+############################################################
+# This script can be used to transfer files from your machine
+# to developer download server.
+#
+# Author(s):
+#     Juhapekka Piiroinen <juhapekka.piiroinen@csc.fi>
+#
+# License: MIT
+#
+# (C) 2020 CSC - IT Center for Science Ltd
+# All Rights Reserved.
+############################################################
+set -e
+
+SOURCE=$1
+
+if [[ -z ${SOURCE} ]]; then
+    echo "USAGE:"
+    echo "   ./transfer some_filename_here"
+    exit 1
+fi
+
+# Internal variables
+REMOTE_USER=cloud-user
+REMOTE_HOME=/home/${REMOTE_USER}
+REMOTE_IP=193.166.25.206
+REMOTE_KEY=cloud.key
+TEMP_DIR=/home/${REMOTE_USER}/incoming
+SOURCE_NAME=`basename ${SOURCE}`
+SERVER="${REMOTE_USER}@${REMOTE_IP}"
+PUBLISH_URL=http://${REMOTE_IP}/download/${SOURCE_NAME}
+SSH="ssh -i ${REMOTE_KEY} ${SERVER}"
+SCP="scp -i ${REMOTE_KEY}"
+
+echo
+echo "You are going to publish following:"
+echo "  File: ${SOURCE}"
+echo "  To: ${PUBLISH_URL}"
+echo
+echo "Press <enter> to continue, or <ctrl+c> to cancel."
+echo
+read
+
+# Commands
+echo "Adding key to agent.."
+ssh-add ${REMOTE_KEY}
+echo "..ssh key ok."
+echo
+echo "Uploading files.."
+${SSH} mkdir -p ${TEMP_DIR}
+${SCP} ${SOURCE} ${SERVER}:${TEMP_DIR}
+${SCP} move_file ${SERVER}:${REMOTE_HOME}/move_file
+echo "..upload complete!"
+echo
+echo "Publishing file on remote server.."
+${SSH} chmod +x ${REMOTE_HOME}/move_file
+${SSH} sudo ./move_file ${TEMP_DIR}/${SOURCE_NAME} 
+echo "..published."
+echo
+echo "--------------------------------------------------"
+echo "File is now available @ ${PUBLISH_URL}"
+echo
